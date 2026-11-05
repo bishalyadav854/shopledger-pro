@@ -7,7 +7,7 @@ A full-stack MERN application for shop management, customer ledgers, product inv
 - **Backend API (Render):** [https://shopledger-backend-c9xb.onrender.com](https://shopledger-backend-c9xb.onrender.com)
 - **API Health Check:** [https://shopledger-backend-c9xb.onrender.com/api/health](https://shopledger-backend-c9xb.onrender.com/api/health)
 - **GitHub Repository:** [https://github.com/bishalyadav854/shopledger-pro](https://github.com/bishalyadav854/shopledger-pro)
-- **Live Frontend Application:** Deploying on Vercel (`client/`)
+- **Live Frontend Application:** Deploying on Vercel (https://shopledger-pro.vercel.app)
 
 ---
 
