@@ -24,12 +24,27 @@ const app = express();
 
 // Security & parsing middleware
 app.use(helmet());
+
+// ✅ Configure CORS here (before routes and parsing middleware)
+const allowedOrigins = [
+  env.clientUrl,
+  'https://shopledger-pro.vercel.app', // Update with your actual Vercel URL
+  'http://localhost:5173',
+].filter(Boolean); // removes undefined/null entries
+
 app.use(
   cors({
-    origin: env.clientUrl,
+    origin: (origin, callback) => {
+      // allow requests with no origin (like mobile apps, curl, or Postman)
+      if (!origin || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error('Blocked by CORS policy'));
+    },
     credentials: true,
   })
 );
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
