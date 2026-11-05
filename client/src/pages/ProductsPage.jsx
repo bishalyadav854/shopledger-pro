@@ -4,11 +4,14 @@ import { FiPackage, FiPlus, FiSearch, FiEdit2, FiTrash2, FiX, FiAlertTriangle } 
 import { productService } from '../services/productService';
 import { categoryService } from '../services/categoryService';
 import { formatCurrency } from '../utils/format';
+import BarcodeScanner from '../components/BarcodeScanner';
+import { lookupBarcode } from '../services/barcodeLookup';
 
 const emptyForm = {
   name: '',
   category: '',
   sku: '',
+  barcode: '',
   sellingPrice: '',
   costPrice: '',
   quantity: '',
@@ -74,6 +77,7 @@ export default function ProductsPage() {
       name: p.name || '',
       category: p.category?._id || p.category || '',
       sku: p.sku || '',
+      barcode: p.barcode || '',
       sellingPrice: p.sellingPrice || '',
       costPrice: p.costPrice || '',
       quantity: p.quantity || '',
@@ -81,6 +85,29 @@ export default function ProductsPage() {
       lowStockThreshold: p.lowStockThreshold ?? 5,
     });
     setShowModal(true);
+  };
+
+  const handleBarcodeScan = async (barcode) => {
+    try {
+      const result = await lookupBarcode(barcode);
+      if (result.source === 'local') {
+        const p = result.product;
+        setEditing(p._id);
+        setFormData({ name: p.name || '', category: p.category?._id || p.category || '', sku: p.sku || '', barcode: p.barcode || barcode, sellingPrice: p.sellingPrice ?? '', costPrice: p.costPrice ?? '', quantity: p.quantity ?? '', unit: p.unit || 'pcs', lowStockThreshold: p.lowStockThreshold ?? 5 });
+        setShowModal(true);
+        toast.success('Existing product found. Details loaded.');
+      } else if (result.source === 'external') {
+        setEditing(null);
+        setFormData((current) => ({ ...current, ...result.product, barcode }));
+        setShowModal(true);
+        toast.success('Catalog details found. Review price and stock before saving.');
+      } else {
+        setEditing(null);
+        setFormData({ ...emptyForm, barcode });
+        setShowModal(true);
+        toast('Barcode not found. Enter product details manually.', { icon: 'ℹ️' });
+      }
+    } catch (error) { toast.error(error.message || error.response?.data?.message || 'Barcode lookup failed'); }
   };
 
   const handleChange = (e) => {
@@ -165,6 +192,8 @@ export default function ProductsPage() {
           </button>
         </div>
       </div>
+
+      <div className="glass rounded-2xl p-4"><BarcodeScanner label="Quick barcode lookup" onScan={handleBarcodeScan} /></div>
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4">
@@ -292,6 +321,11 @@ export default function ProductsPage() {
               <div>
                 <label className="block text-sm text-slate-400 mb-1.5">Name *</label>
                 <input name="name" value={formData.name} onChange={handleChange} className="input-modern" placeholder="Product name" />
+              </div>
+              <BarcodeScanner label="Barcode / scan with USB or camera" placeholder="Scan barcode and load product details" onScan={handleBarcodeScan} compact />
+              <div>
+                <label className="block text-sm text-slate-400 mb-1.5">Barcode</label>
+                <input name="barcode" value={formData.barcode} onChange={handleChange} className="input-modern" placeholder="EAN / UPC / product barcode" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>

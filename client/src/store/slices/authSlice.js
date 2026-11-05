@@ -1,29 +1,57 @@
+
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { authService } from '../../services/authService';
 
-let user = null;
-try {
-  const storedUser = localStorage.getItem('user');
-  user = storedUser ? JSON.parse(storedUser) : null;
-} catch (e) {
-  // Corrupted localStorage value — treat as logged out and clean up
-  localStorage.removeItem('user');
-  localStorage.removeItem('accessToken');
-  user = null;
-}
-const accessToken = localStorage.getItem('accessToken');
+const getStoredUser = () => {
+  try {
+    const stored = localStorage.getItem('user');
+    return stored ? JSON.parse(stored) : null;
+  } catch {
+    localStorage.removeItem('user');
+    return null;
+  }
+};
+
+const getStoredToken = () => {
+  try {
+    return localStorage.getItem('accessToken') || null;
+  } catch {
+    return null;
+  }
+};
+
+const saveSession = (user, accessToken) => {
+  if (user) {
+    localStorage.setItem('user', JSON.stringify(user));
+  }
+
+  if (accessToken) {
+    localStorage.setItem('accessToken', accessToken);
+  }
+};
+
+const getErrorMessage = (error, fallback) =>
+  error.response?.data?.message || error.message || fallback;
 
 export const register = createAsyncThunk(
   'auth/register',
   async (userData, { rejectWithValue }) => {
     try {
       const response = await authService.register(userData);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
-      localStorage.setItem('accessToken', response.data.accessToken);
-      return response.data;
+      const result = response.data?.data;
+
+      if (!result?.user || !result?.accessToken) {
+        return rejectWithValue(
+          'Invalid registration response from server'
+        );
+      }
+
+      saveSession(result.user, result.accessToken);
+      return result;
     } catch (error) {
-      const message = error.response?.data?.message || 'Registration failed';
-      return rejectWithValue(message);
+      return rejectWithValue(
+        getErrorMessage(error, 'Registration failed')
+      );
     }
   }
 );
@@ -33,30 +61,45 @@ export const login = createAsyncThunk(
   async (credentials, { rejectWithValue }) => {
     try {
       const response = await authService.login(credentials);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
-      localStorage.setItem('accessToken', response.data.accessToken);
-      return response.data;
+      const result = response.data?.data;
+
+      if (!result?.user || !result?.accessToken) {
+        return rejectWithValue(
+          'Invalid login response from server'
+        );
+      }
+
+      saveSession(result.user, result.accessToken);
+      return result;
     } catch (error) {
-      const message = error.response?.data?.message || 'Login failed';
-      return rejectWithValue(message);
+      return rejectWithValue(
+        getErrorMessage(error, 'Login failed')
+      );
     }
   }
 );
 
-export const logout = createAsyncThunk('auth/logout', async () => {
-  try {
-    await authService.logout();
-  } catch (error) {
-    // Still clear local storage even if API call fails
+export const logout = createAsyncThunk(
+  'auth/logout',
+  async () => {
+    try {
+      await authService.logout();
+    } catch {
+      // Clear the local session even if the server is unreachable.
+    } finally {
+      localStorage.removeItem('user');
+      localStorage.removeItem('accessToken');
+    }
   }
-  localStorage.removeItem('user');
-  localStorage.removeItem('accessToken');
-});
+);
+
+const initialUser = getStoredUser();
+const initialToken = getStoredToken();
 
 const initialState = {
-  user: user || null,
-  accessToken: accessToken || null,
-  isAuthenticated: !!user,
+  user: initialUser,
+  accessToken: initialToken,
+  isAuthenticated: Boolean(initialUser && initialToken),
   isLoading: false,
   isError: false,
   isSuccess: false,
@@ -73,14 +116,27 @@ const authSlice = createSlice({
       state.isSuccess = false;
       state.message = '';
     },
+
     setUser: (state, action) => {
       state.user = action.payload;
+
+      if (action.payload) {
+        localStorage.setItem(
+          'user',
+          JSON.stringify(action.payload)
+        );
+      } else {
+        localStorage.removeItem('user');
+      }
     },
   },
+
   extraReducers: (builder) => {
     builder
       .addCase(register.pending, (state) => {
         state.isLoading = true;
+        state.isError = false;
+        state.message = '';
       })
       .addCase(register.fulfilled, (state, action) => {
         state.isLoading = false;
@@ -92,10 +148,12 @@ const authSlice = createSlice({
       .addCase(register.rejected, (state, action) => {
         state.isLoading = false;
         state.isError = true;
-        state.message = action.payload;
+        state.message = action.payload || 'Registration failed';
       })
       .addCase(login.pending, (state) => {
         state.isLoading = true;
+        state.isError = false;
+        state.message = '';
       })
       .addCase(login.fulfilled, (state, action) => {
         state.isLoading = false;
@@ -107,16 +165,22 @@ const authSlice = createSlice({
       .addCase(login.rejected, (state, action) => {
         state.isLoading = false;
         state.isError = true;
-        state.message = action.payload;
+        state.message = action.payload || 'Login failed';
+      })
+      .addCase(logout.pending, (state) => {
+        state.isLoading = true;
       })
       .addCase(logout.fulfilled, (state) => {
         state.user = null;
         state.accessToken = null;
         state.isAuthenticated = false;
+        state.isLoading = false;
+        state.isError = false;
+        state.isSuccess = false;
+        state.message = '';
       });
   },
 });
 
 export const { reset, setUser } = authSlice.actions;
 export default authSlice.reducer;
-

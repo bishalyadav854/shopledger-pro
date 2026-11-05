@@ -15,7 +15,7 @@ const invoiceSchema = new mongoose.Schema(
   {
     shop: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     invoiceNumber: { type: String, required: true, trim: true },
-    customer: { type: mongoose.Schema.Types.ObjectId, ref: 'Customer', required: true, index: true },
+    customer: { type: mongoose.Schema.Types.ObjectId, ref: 'Customer', required: false, index: true },
     items: [invoiceItemSchema],
     subtotal: { type: Number, required: true, default: 0 },
     discountTotal: { type: Number, default: 0 },

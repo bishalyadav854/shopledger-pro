@@ -4,6 +4,7 @@ import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
+import POSPage from './pages/POSPage';
 import CustomersPage from './pages/CustomersPage';
 import ProductsPage from './pages/ProductsPage';
 import InvoicesPage from './pages/InvoicesPage';
@@ -55,6 +56,14 @@ export default function App() {
             <MainLayout>
               <DashboardPage />
             </MainLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/pos"
+        element={
+          <ProtectedRoute>
+            <MainLayout><POSPage /></MainLayout>
           </ProtectedRoute>
         }
       />

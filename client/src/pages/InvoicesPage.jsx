@@ -7,6 +7,8 @@ import { productService } from '../services/productService';
 import { settingsService } from '../services/settingsService';
 import { paymentService } from '../services/paymentService';
 import { formatCurrency, formatDate, statusStyles, statusLabels } from '../utils/format';
+import BarcodeScanner from '../components/BarcodeScanner';
+import { lookupBarcode } from '../services/barcodeLookup';
 
 const emptyItem = { product: '', name: '', quantity: 1, price: 0, discount: 0 };
 
@@ -89,6 +91,32 @@ export default function InvoicesPage() {
       }
     }
     setItems(updated);
+  };
+
+  const handleInvoiceBarcode = async (barcode) => {
+    try {
+      const result = await lookupBarcode(barcode);
+      if (result.source === 'local') {
+        const p = result.product;
+        if (Number(p.quantity) <= 0) return toast.error(`${p.name} is out of stock`);
+        const existing = items.findIndex((it) => it.product === p._id);
+        if (existing >= 0) {
+          if (Number(items[existing].quantity) + 1 > Number(p.quantity)) return toast.error(`Only ${p.quantity} ${p.unit || 'pcs'} in stock`);
+          handleItemChange(existing, 'quantity', Number(items[existing].quantity) + 1);
+        } else {
+          const emptyIndex = items.findIndex((it) => !it.name && !it.product);
+          const next = { product: p._id, name: p.name, quantity: 1, price: p.sellingPrice, discount: 0, unit: p.unit };
+          if (emptyIndex >= 0) { const copy = [...items]; copy[emptyIndex] = next; setItems(copy); } else setItems((current) => [...current, next]);
+        }
+        toast.success(`${p.name} added to draft invoice`);
+      } else if (result.source === 'external') {
+        const p = result.product;
+        const emptyIndex = items.findIndex((it) => !it.name && !it.product);
+        const next = { product: '', name: p.name, quantity: 1, price: '', discount: 0, unit: p.unit || 'pcs', barcode };
+        if (emptyIndex >= 0) { const copy = [...items]; copy[emptyIndex] = next; setItems(copy); } else setItems((current) => [...current, next]);
+        toast('Catalog name added. Set price and register the barcode in Products before saving a stock-tracked sale.', { icon: 'ℹ️' });
+      } else { toast.error('Barcode not found. Add the product in Products first or enter the item manually.'); }
+    } catch (error) { toast.error(error.message || 'Barcode lookup failed'); }
   };
 
   const addItem = () => setItems([...items, { ...emptyItem }]);
@@ -329,6 +357,9 @@ export default function InvoicesPage() {
                 </select>
               </div>
 
+              {/* Barcode scan: only adds items to the draft; stock changes after invoice save. */}
+              <div className="rounded-xl bg-white/5 border border-slate-700/60 p-4"><BarcodeScanner label="Scan item into invoice" onScan={handleInvoiceBarcode} compact /></div>
+
               {/* Items */}
               <div>
                 <label className="block text-sm text-slate-400 mb-1.5">Items</label>
@@ -430,7 +461,7 @@ export default function InvoicesPage() {
       {viewInvoice && !showCreate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/60" onClick={() => setViewInvoice(null)} />
-          <div className="relative bg-white rounded-2xl w-full max-w-2xl p-8 shadow-2xl text-slate-900 max-h-[92vh] overflow-y-auto">
+          <div className={`invoice-printable relative bg-white rounded-2xl w-full ${settings?.printerType === 'thermal80mm' ? 'max-w-[80mm] p-4' : 'max-w-2xl p-8'} shadow-2xl text-slate-900 max-h-[92vh] overflow-y-auto`}>
             <div className="flex items-start justify-between mb-6 print:hidden">
               <div>
                 <h2 className="text-xl font-bold">{settings?.shopName || 'Shop'}</h2>

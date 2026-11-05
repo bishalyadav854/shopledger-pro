@@ -18,6 +18,7 @@ const productSchema = new mongoose.Schema(
 );
 
 productSchema.index({ shop: 1, sku: 1 }, { unique: true, sparse: true });
+productSchema.index({ shop: 1, barcode: 1 }, { unique: true, partialFilterExpression: { barcode: { $type: 'string' } } });
 productSchema.index({ name: 'text', sku: 'text', barcode: 'text' });
 
 export default mongoose.model('Product', productSchema);

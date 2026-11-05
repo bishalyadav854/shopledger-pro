@@ -1,7 +1,7 @@
 import { body } from 'express-validator';
 
 export const invoiceRules = [
-  body('customer').isMongoId().withMessage('A valid customer id is required'),
+  body('customer').optional({ nullable: true, checkFalsy: true }).isMongoId().withMessage('Invalid customer id'),
   body('items').isArray({ min: 1 }).withMessage('At least one item is required'),
   body('items.*.product').optional().isMongoId().withMessage('Invalid product id'),
   body('items.*.name').trim().notEmpty().withMessage('Item name is required'),

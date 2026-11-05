@@ -11,6 +11,11 @@ export const listProducts = asyncHandler(async (req, res) => {
   res.status(200).json({ success: true, ...result });
 });
 
+export const getProductByBarcode = asyncHandler(async (req, res) => {
+  const product = await productService.getProductByBarcode(req.user._id, req.params.barcode);
+  res.status(200).json({ success: true, data: product });
+});
+
 export const getProduct = asyncHandler(async (req, res) => {
   const product = await productService.getProduct(req.user._id, req.params.id);
   res.status(200).json({ success: true, data: product });

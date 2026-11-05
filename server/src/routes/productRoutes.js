@@ -8,6 +8,8 @@ const router = express.Router();
 
 router.use(protect);
 
+router.get('/barcode/:barcode', productController.getProductByBarcode);
+
 router
   .route('/')
   .get(productController.listProducts)

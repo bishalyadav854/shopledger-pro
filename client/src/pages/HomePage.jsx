@@ -327,7 +327,7 @@ export default function HomePage() {
                 SL
               </div>
               <span className="text-sm text-slate-500">
-                © 2024 ShopLedger Pro. All rights reserved.
+                © 2026 ShopLedger Pro. All rights reserved to Bishal Kumar Yadav.
               </span>
             </div>
             <div className="flex items-center gap-6">

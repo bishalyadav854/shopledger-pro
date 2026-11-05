@@ -174,3 +174,14 @@ body {
   opacity: 1;
 }
 
+
+
+/* Print only the invoice; the selected printer and driver determine final paper feed. */
+@media print {
+  @page { margin: 8mm; }
+  body * { visibility: hidden !important; }
+  .invoice-printable, .invoice-printable * { visibility: visible !important; }
+  .invoice-printable { position: fixed !important; inset: 0 auto auto 0 !important; width: 190mm !important; max-width: none !important; max-height: none !important; overflow: visible !important; padding: 0 !important; border: 0 !important; box-shadow: none !important; border-radius: 0 !important; }
+  .invoice-printable .print\:hidden { display: none !important; }
+  body:has(.invoice-printable.max-w-\[80mm\]) .invoice-printable { width: 72mm !important; }
+}

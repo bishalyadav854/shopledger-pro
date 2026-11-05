@@ -1,20 +1,23 @@
+# Dependencies
 node_modules/
+
+# Environment and secrets
 .env
-.env.local
-dist/
-build/
+.env.*
+!.env.example
+
+# Build output and coverage
+**/dist/
+**/build/
+**/coverage/
+
+# Runtime uploads and logs
 uploads/*
 !uploads/.gitkeep
 *.log
+
+# OS/editor files
 .DS_Store
-coverage/
-node_modules/
-client/node_modules/
-server/node_modules/
-
-.env
-client/.env
-server/.env
-
-dist/
-build/
+Thumbs.db
+.vscode/
+.idea/
